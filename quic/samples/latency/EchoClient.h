@@ -326,7 +326,7 @@ class EchoClient : public quic::QuicSocket::ConnectionSetupCallback,
     if (res.hasError()) {
         auto error = res.error();
         if (error == quic::LocalErrorCode::STREAM_LIMIT_EXCEEDED) {
-            // LOG(WARNING) << "Buffer full for file ID=" << fileId << ". Scheduling retry.";
+            LOG(WARNING) << "Buffer full for file ID=" << fileId << ". Scheduling retry.";
             scheduleRetry(id, std::move(message), fileId);
         } else {
             LOG(ERROR) << "writeChain error for file ID=" << fileId << ": " << quic::toString(error);
@@ -374,7 +374,7 @@ class EchoClient : public quic::QuicSocket::ConnectionSetupCallback,
   }
 
   void periodicSend(uint64_t count) {
-    if (count >= 300) {
+    if (count >= totalFiles_) {
         LOG(INFO) << "All files have been sent.";
         return;
     }
@@ -481,7 +481,7 @@ class EchoClient : public quic::QuicSocket::ConnectionSetupCallback,
   folly::EventBase* evb_;
   std::queue<uint64_t> fileQueue_; // Queue to manage file sending order
   std::queue<uint64_t> retryQueue_;   // Queue to manage files that need to be retried
-  uint64_t totalFiles_ = 300;      
+  uint64_t totalFiles_ = 3000;      
   quic::StreamId streamId_;        
   bool isSending_ = false;         // Flag to indicate if a send is in progress
   std::shared_ptr<folly::IOBuf> cachedFileData; // Cached file data

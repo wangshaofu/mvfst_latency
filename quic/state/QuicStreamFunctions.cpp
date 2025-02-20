@@ -38,6 +38,7 @@ std::pair<bool, uint64_t> writeDataToQuicStream(QuicStreamState& stream, Buf dat
   auto bytesBuffered = stream.conn.flowControlState.sumCurStreamBufferLen; // temp added for test
   LOG(INFO) << "self: not yet write, current sumCurStreamBufferLen: " << bytesBuffered; 
   // Check if adding new data exceeds max buffer size
+
   if (currentBufferSize + len > maxBufferSize) { //!!!using sumCurStreamBufferLen sin is accurate
     uint64_t availableBytes = maxBufferSize > currentBufferSize ? maxBufferSize - currentBufferSize : 0;
       // Return failure and available bytes
