@@ -1876,6 +1876,7 @@ void QuicTransportBaseLite::handleDeliveryCallbacks() {
       size_t amountTrimmed = stream->writeBuffer.trimStartAtMost(
           *maxOffsetToDeliver - stream->writeBufferStartOffset);
       stream->writeBufferStartOffset += amountTrimmed;
+      // LOG(INFO) << "In handleDeliveryCallbacks, the writeBuffer should be cut for size: " << amountTrimmed;
     }
 
     if (maxOffsetToDeliver.has_value()) {

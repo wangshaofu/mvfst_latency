@@ -272,6 +272,7 @@ void updateFlowControlOnWriteToSocket(
   incrementWithOverFlowCheck(
       stream.conn.flowControlState.sumCurWriteOffset, length);
   DCHECK_GE(stream.conn.flowControlState.sumCurStreamBufferLen, length);
+  // LOG(INFO) << "In updateFlowControlOnWriteToSocket, the stream.conn.flowControlState should be cut for size: " << length;
   stream.conn.flowControlState.sumCurStreamBufferLen -= length;
   if (stream.conn.flowControlState.sumCurWriteOffset ==
       stream.conn.flowControlState.peerAdvertisedMaxOffset) {

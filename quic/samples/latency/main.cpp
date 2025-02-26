@@ -42,6 +42,10 @@ DEFINE_bool(
     "Client specific; connect and exit when set to true");
 DEFINE_string(client_cert_path, "", "Client certificate file path");
 DEFINE_string(client_key_path, "", "Client private key file path");
+DEFINE_int64(
+  latency_buffer_size,
+  512000,
+  "Maximum size of latency buffer in bytes");
 
 using namespace quic::samples;
 
@@ -88,7 +92,8 @@ int main(int argc, char* argv[]) {
         std::move(alpns),
         FLAGS_connect_only,
         FLAGS_client_cert_path,
-        FLAGS_client_key_path);
+        FLAGS_client_key_path,
+        FLAGS_latency_buffer_size);
     client.start(FLAGS_token);
   } else {
     LOG(ERROR) << "Unknown mode specified: " << FLAGS_mode;

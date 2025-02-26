@@ -27,20 +27,17 @@ void prependToBuf(quic::Buf& buf, quic::Buf toAppend) {
 
 namespace quic {
 
+uint64_t maxLatencyBufferSize = 512000;
+
 std::pair<bool, uint64_t> writeDataToQuicStream(QuicStreamState& stream, Buf data, bool eof) {
   uint64_t len = data ? data->computeChainDataLength() : 0;
-
-  // Maximum buffer size in bytes
-  const uint64_t maxBufferSize = 512000; // 512000 bytes
-
   uint64_t currentBufferSize = stream.writeBuffer.chainLength();
-  LOG(INFO) << "self: not yet write, current writeBuffer size: " << currentBufferSize;
+  // LOG(INFO) << "self: not yet write, current writeBuffer size: " << currentBufferSize;
   auto bytesBuffered = stream.conn.flowControlState.sumCurStreamBufferLen; // temp added for test
-  LOG(INFO) << "self: not yet write, current sumCurStreamBufferLen: " << bytesBuffered; 
+  // LOG(INFO) << "self: not yet write, current sumCurStreamBufferLen: " << bytesBuffered; 
   // Check if adding new data exceeds max buffer size
-
-  if (currentBufferSize + len > maxBufferSize) { //!!!using sumCurStreamBufferLen sin is accurate
-    uint64_t availableBytes = maxBufferSize > currentBufferSize ? maxBufferSize - currentBufferSize : 0;
+  if (currentBufferSize + len > maxLatencyBufferSize) { //!!!using sumCurStreamBufferLen sin is accurate
+    uint64_t availableBytes = maxLatencyBufferSize > currentBufferSize ? maxLatencyBufferSize - currentBufferSize : 0;
       // Return failure and available bytes
       return {false, availableBytes};
   }

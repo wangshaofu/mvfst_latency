@@ -18,6 +18,8 @@ namespace quic {
  *
  * @throws QuicTransportException on error.
  */
+extern uint64_t maxLatencyBufferSize; // UROP Michael: Very bad way of writing code, externed in QuicTransportBaseLite.cpp
+
 std::pair<bool, uint64_t> writeDataToQuicStream(QuicStreamState& stream, Buf data, bool eof);
 
 /**
