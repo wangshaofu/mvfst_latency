@@ -550,6 +550,9 @@ constexpr uint64_t kAckPurgingThresh = 10;
 // Default number of packets to buffer if keys are not present.
 constexpr uint32_t kDefaultMaxBufferedPackets = 20;
 
+// UROP Michael: added for the purpose of the UROP project
+// constexpr uint64_t kMaxLatencyBufferSize = 512000;
+
 // Default exponent to use while computing ack delay.
 constexpr uint64_t kDefaultAckDelayExponent = 3;
 constexpr uint64_t kMaxAckDelayExponent = 20;

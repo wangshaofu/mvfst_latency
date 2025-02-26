@@ -34,7 +34,7 @@
 #include <quic/common/udpsocket/FollyQuicAsyncUDPSocket.h>
 #include <quic/fizz/client/handshake/FizzClientQuicHandshakeContext.h>
 #include <quic/samples/latency/LogQuicStats.h>
-
+#include <quic/state/QuicStreamFunctions.h>   // UROP Michael: Bad code, added for testing
 namespace quic::samples {
 
 constexpr size_t kNumTestStreamGroups = 2;
@@ -55,7 +55,8 @@ class EchoClient : public quic::QuicSocket::ConnectionSetupCallback,
       std::vector<std::string> alpns,
       bool connectOnly,
       const std::string& clientCertPath,
-      const std::string& clientKeyPath)
+      const std::string& clientKeyPath,
+      uint64_t latencyBufferSize)
       : host_(host),
         port_(port),
         useDatagrams_(useDatagrams),
@@ -65,7 +66,8 @@ class EchoClient : public quic::QuicSocket::ConnectionSetupCallback,
         alpns_(std::move(alpns)),
         connectOnly_(connectOnly),
         clientCertPath_(clientCertPath),
-        clientKeyPath_(clientKeyPath) {}
+        clientKeyPath_(clientKeyPath), 
+        latencyBufferSize_(latencyBufferSize){}
 
   void readAvailable(quic::StreamId streamId) noexcept override {
     auto readData = quicClient_->read(streamId, 0);
@@ -318,9 +320,12 @@ class EchoClient : public quic::QuicSocket::ConnectionSetupCallback,
   [[nodiscard]] quic::StreamGroupId getNextGroupId() {
     return streamGroups_[(curGroupIdIdx_++) % kNumTestStreamGroups];
   }
-
   void sendMessage(quic::StreamId id, BufQueue& data, uint64_t fileId) {
+    // UROP Michael: Maximum buffer size in bytes
+    // maxLatencyBufferSize = 512000;
     // LOG(INFO) << "Sending file with ID=" << fileId;
+    maxLatencyBufferSize = latencyBufferSize_;  // UROP Michael: Used the extern variable to set the buffer size
+
     auto message = data.move();
     auto res = quicClient_->writeChain(id, message->clone(), false);
     if (res.hasError()) {
@@ -503,5 +508,6 @@ class EchoClient : public quic::QuicSocket::ConnectionSetupCallback,
   bool connectOnly_{false};
   std::string clientCertPath_;
   std::string clientKeyPath_;
+  uint64_t latencyBufferSize_;
 };
 } // namespace quic::samples
