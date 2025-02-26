@@ -243,6 +243,8 @@ class EchoClient : public quic::QuicSocket::ConnectionSetupCallback,
       }
 
       TransportSettings settings;
+      settings.pacingEnabled = true;
+      settings.defaultCongestionController = quic::CongestionControlType::BBR2; // UROP Michael: Changed from cubic to bbr to get bandwidth easier
       settings.datagramConfig.enabled = useDatagrams_;
       settings.selfActiveConnectionIdLimit = activeConnIdLimit_;
       settings.disableMigration = !enableMigration_;
@@ -268,7 +270,7 @@ class EchoClient : public quic::QuicSocket::ConnectionSetupCallback,
 
     // Send the file
     scheduleSends(evb);
-    
+    scheduleMonitoring(evb);
     // std::string message;
     // bool closed = false;
     // auto client = quicClient_;
@@ -319,6 +321,30 @@ class EchoClient : public quic::QuicSocket::ConnectionSetupCallback,
  private:
   [[nodiscard]] quic::StreamGroupId getNextGroupId() {
     return streamGroups_[(curGroupIdIdx_++) % kNumTestStreamGroups];
+  }
+
+
+  void scheduleMonitoring(folly::EventBase* evb) {
+    evb->runInEventBaseThread([this, evb]() {
+        // Print RTT and bandwidth
+        printTransportStats();
+
+        // Schedule the next monitoring event after 1000 milliseconds (1 second)
+        evb->runAfterDelay([this, evb]() {
+            scheduleMonitoring(evb);
+        }, 10);
+    });
+  }
+
+  void printTransportStats() {
+    quic::QuicSocketLite::TransportInfo transportInfo = quicClient_->getTransportInfo();
+    quic::QuicConnectionStats connectionStats = quicClient_->getConnectionsStats();
+    // uint64_t bandwidth = conn_->.congestionController.getBandwidth();
+    auto srtt = transportInfo.srtt.count(); // Smoothed RTT in microseconds
+    auto srtt2 = connectionStats.srtt.count(); // RTT in microseconds
+    LOG(INFO) << "SRTT using transportInfo: " << srtt;
+    LOG(INFO) << "SRTT using connectionStats: " << srtt2;
+    LOG(INFO) << "Bandwidth: " << bitsPerSecSample; // UROP Michael: Externed from QuicTransportBaseLite.h
   }
   void sendMessage(quic::StreamId id, BufQueue& data, uint64_t fileId) {
     // UROP Michael: Maximum buffer size in bytes

@@ -13,6 +13,8 @@
 
 namespace quic {
 
+extern uint64_t bitsPerSecSample; // UROP Michael: Added for getting the bandwidth
+
 enum class CloseState { OPEN, GRACEFUL_CLOSING, CLOSED };
 
 class QuicTransportBaseLite : virtual public QuicSocketLite,
@@ -63,7 +65,6 @@ class QuicTransportBaseLite : virtual public QuicSocketLite,
   uint64_t getNumOpenableUnidirectionalStreams() const override;
   bool isUnidirectionalStream(StreamId stream) noexcept override;
   bool isBidirectionalStream(StreamId stream) noexcept override;
-
   WriteResult writeChain(
       StreamId id,
       Buf data,

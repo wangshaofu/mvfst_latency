@@ -30,6 +30,8 @@ quic::QuicError maybeSetGenericAppError(
 
 namespace quic {
 
+uint64_t bitsPerSecSample = 0;  // UROP Michael: Added for getting the bandwidth
+
 inline std::ostream& operator<<(
     std::ostream& os,
     const CloseState& closeState) {
@@ -314,7 +316,16 @@ QuicSocketLite::WriteResult QuicTransportBaseLite::writeChain(
       wasAppLimitedOrIdle = conn_->congestionController->isAppLimited();
       wasAppLimitedOrIdle |= conn_->streamManager->isAppIdle();
     }
-
+    // UROP Michael: Temp added to get the bandwidth
+    if (conn_->congestionController) {
+      auto bandwidth = conn_->congestionController->getBandwidth();
+      if (bandwidth.has_value() &&
+          bandwidth->unitType == Bandwidth::UnitType::BYTES) {
+          bitsPerSecSample = bandwidth->normalize() * 8;
+      }
+    }
+    // LOG(INFO) << "Bandwidth: " << bitsPerSecSample << " bps";
+    
     auto [success, availableBytes] = writeDataToQuicStream(*stream, std::move(data), eof);
     if (!success) {
       // Buffer is full, return existing error code with a detailed message
