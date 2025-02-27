@@ -30,8 +30,6 @@ quic::QuicError maybeSetGenericAppError(
 
 namespace quic {
 
-uint64_t bitsPerSecSample = 0;  // UROP Michael: Added for getting the bandwidth
-
 inline std::ostream& operator<<(
     std::ostream& os,
     const CloseState& closeState) {
@@ -278,6 +276,30 @@ bool QuicTransportBaseLite::isBidirectionalStream(StreamId stream) noexcept {
   return quic::isBidirectionalStream(stream);
 }
 
+uint64_t QuicTransportBaseLite::getThresholdForLatencyControl(uint32_t latencyThreshold){
+  auto srtt = conn_->lossState.srtt;
+  uint64_t minBufferSize = 51220; // Todo: Initialize with a minimum buffer which is larger than the file 
+  // UROP Michael: Temp added to get the bandwidth
+  if (conn_->congestionController) { 
+    auto bandwidth = conn_->congestionController->getBandwidth();
+    if (bandwidth.has_value() &&
+        bandwidth->unitType == Bandwidth::UnitType::BYTES) {
+        bitsPerSecSample = bandwidth->normalize() * 8;
+        // Dynamically calculate buffer size
+        uint64_t dynamicBufferSize = (latencyThreshold > (double)srtt.count()/2000) ? 
+            (latencyThreshold - (double)srtt.count()/2000) * (bitsPerSecSample/8000) : 0;
+          // Ensure the buffer size is at least the minimum buffer size
+        if (dynamicBufferSize > minBufferSize) {
+            minBufferSize = dynamicBufferSize;
+        }
+    }
+  }
+  LOG(INFO) << "Current SRTT: " << srtt.count() << " us";
+  LOG(INFO) << "Current Bandwidth: " << bitsPerSecSample; // UROP Michael: Externed from QuicTransportBaseLite.h  
+  LOG(INFO) << "Max Buffer Size: " << minBufferSize;
+  return minBufferSize;
+}
+
 QuicSocketLite::WriteResult QuicTransportBaseLite::writeChain(
     StreamId id,
     Buf data,
@@ -316,17 +338,9 @@ QuicSocketLite::WriteResult QuicTransportBaseLite::writeChain(
       wasAppLimitedOrIdle = conn_->congestionController->isAppLimited();
       wasAppLimitedOrIdle |= conn_->streamManager->isAppIdle();
     }
-    // UROP Michael: Temp added to get the bandwidth
-    if (conn_->congestionController) {
-      auto bandwidth = conn_->congestionController->getBandwidth();
-      if (bandwidth.has_value() &&
-          bandwidth->unitType == Bandwidth::UnitType::BYTES) {
-          bitsPerSecSample = bandwidth->normalize() * 8;
-      }
-    }
     // LOG(INFO) << "Bandwidth: " << bitsPerSecSample << " bps";
-    
-    auto [success, availableBytes] = writeDataToQuicStream(*stream, std::move(data), eof);
+    auto thresholdBufferSize = getThresholdForLatencyControl(latencyThreshold); // UROP Michael: Added to get the bandwidth
+    auto [success, availableBytes] = writeDataToQuicStreamWithLatencyControl(*stream, std::move(data), eof, thresholdBufferSize);
     if (!success) {
       // Buffer is full, return existing error code with a detailed message
       // LOG(WARNING) << "Buffer full on stream " << id

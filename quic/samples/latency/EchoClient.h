@@ -232,7 +232,7 @@ class EchoClient : public quic::QuicSocket::ConnectionSetupCallback,
               .build();
       quicClient_ = std::make_shared<quic::QuicClientTransport>(
           qEvb, std::move(sock), std::move(fizzClientContext));
-      quicClient_->setHostname("echo.com");
+      quicClient_->setHostname("urop");
       quicClient_->addNewPeerAddress(addr);
       if (!token.empty()) {
         quicClient_->setNewToken(token);
@@ -268,9 +268,11 @@ class EchoClient : public quic::QuicSocket::ConnectionSetupCallback,
       return;
     }
 
+    setMaximumThreshhold();
     // Send the file
     scheduleSends(evb);
     scheduleMonitoring(evb);
+    
     // std::string message;
     // bool closed = false;
     // auto client = quicClient_;
@@ -337,21 +339,18 @@ class EchoClient : public quic::QuicSocket::ConnectionSetupCallback,
   }
 
   void printTransportStats() {
-    quic::QuicSocketLite::TransportInfo transportInfo = quicClient_->getTransportInfo();
-    quic::QuicConnectionStats connectionStats = quicClient_->getConnectionsStats();
-    // uint64_t bandwidth = conn_->.congestionController.getBandwidth();
-    auto srtt = transportInfo.srtt.count(); // Smoothed RTT in microseconds
-    auto srtt2 = connectionStats.srtt.count(); // RTT in microseconds
-    LOG(INFO) << "SRTT using transportInfo: " << srtt;
-    LOG(INFO) << "SRTT using connectionStats: " << srtt2;
-    LOG(INFO) << "Bandwidth: " << bitsPerSecSample; // UROP Michael: Externed from QuicTransportBaseLite.h
+    // quicClient_->getThresholdForLatencyControl(0);
   }
+
+  void setMaximumThreshhold() {
+    // UROP Michael: Set the maximum threshold for latency control
+    quicClient_->latencyThreshold = 150; // this means setting the maximum allowed latency to 150ms
+  }
+
   void sendMessage(quic::StreamId id, BufQueue& data, uint64_t fileId) {
     // UROP Michael: Maximum buffer size in bytes
     // maxLatencyBufferSize = 512000;
     // LOG(INFO) << "Sending file with ID=" << fileId;
-    maxLatencyBufferSize = latencyBufferSize_;  // UROP Michael: Used the extern variable to set the buffer size
-
     auto message = data.move();
     auto res = quicClient_->writeChain(id, message->clone(), false);
     if (res.hasError()) {

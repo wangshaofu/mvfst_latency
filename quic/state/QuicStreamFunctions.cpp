@@ -29,15 +29,15 @@ namespace quic {
 
 uint64_t maxLatencyBufferSize = 512000;
 
-std::pair<bool, uint64_t> writeDataToQuicStream(QuicStreamState& stream, Buf data, bool eof) {
+std::pair<bool, uint64_t> writeDataToQuicStreamWithLatencyControl(QuicStreamState& stream, Buf data, bool eof, uint64_t thresholdBufferSize) {
   uint64_t len = data ? data->computeChainDataLength() : 0;
   uint64_t currentBufferSize = stream.writeBuffer.chainLength();
   // LOG(INFO) << "self: not yet write, current writeBuffer size: " << currentBufferSize;
   auto bytesBuffered = stream.conn.flowControlState.sumCurStreamBufferLen; // temp added for test
   // LOG(INFO) << "self: not yet write, current sumCurStreamBufferLen: " << bytesBuffered; 
   // Check if adding new data exceeds max buffer size
-  if (currentBufferSize + len > maxLatencyBufferSize) { //!!!using sumCurStreamBufferLen sin is accurate
-    uint64_t availableBytes = maxLatencyBufferSize > currentBufferSize ? maxLatencyBufferSize - currentBufferSize : 0;
+  if (currentBufferSize + len > thresholdBufferSize) { //!!!using sumCurStreamBufferLen sin is accurate
+    uint64_t availableBytes = thresholdBufferSize > currentBufferSize ? thresholdBufferSize - currentBufferSize : 0;
       // Return failure and available bytes
       return {false, availableBytes};
   }
@@ -57,6 +57,33 @@ std::pair<bool, uint64_t> writeDataToQuicStream(QuicStreamState& stream, Buf dat
   
     // Return success
   return {true, 0};
+}
+
+void writeDataToQuicStream(QuicStreamState& stream, Buf data, bool eof) {
+  auto neverWrittenBufMeta = (0 == stream.writeBufMeta.offset);
+  uint64_t len = 0;
+  if (data) {
+    len = data->computeChainDataLength();
+  }
+  // Disallow writing any data or EOF when there's buf meta data already.
+  CHECK(neverWrittenBufMeta);
+  // Also disallow writing an EOF at the end of real data when there's going
+  // to be buf meta data in the future.
+  LOG_IF(FATAL, eof && stream.dsrSender)
+      << "Trying to write eof on normal data for DSR stream: " << &stream;
+  if (len > 0) {
+    // We call this before updating the writeBuffer because we only want to
+    // write a blocked frame first time the stream becomes blocked
+    maybeWriteBlockAfterAPIWrite(stream);
+  }
+  stream.pendingWrites.append(data);
+  stream.writeBuffer.append(std::move(data));
+  if (eof) {
+    auto bufferSize = stream.pendingWrites.chainLength();
+    stream.finalWriteOffset = stream.currentWriteOffset + bufferSize;
+  }
+  updateFlowControlOnWriteToStream(stream, len);
+  stream.conn.streamManager->updateWritableStreams(stream);
 }
 
 
