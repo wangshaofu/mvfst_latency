@@ -313,7 +313,14 @@ QuicSocketLite::WriteResult QuicTransportBaseLite::writeChain(
     if (conn_->congestionController) {
       wasAppLimitedOrIdle = conn_->congestionController->isAppLimited();
       wasAppLimitedOrIdle |= conn_->streamManager->isAppIdle();
+      if(conn_->congestionController->getBandwidth().hasValue()){
+       LOG(INFO)<<"Estimated Bandwidth: "<<(conn_->congestionController->getBandwidth()).value().normalizedDescribe();
+      }
+      else{
+        LOG(INFO)<<"Estimated Bandwidth: Not available";
+      }
     }
+
 
     auto [success, availableBytes] = writeDataToQuicStream(*stream, std::move(data), eof);
     if (!success) {

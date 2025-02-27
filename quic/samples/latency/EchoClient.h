@@ -486,7 +486,7 @@ class EchoClient : public quic::QuicSocket::ConnectionSetupCallback,
   folly::EventBase* evb_;
   std::queue<uint64_t> fileQueue_; // Queue to manage file sending order
   std::queue<uint64_t> retryQueue_;   // Queue to manage files that need to be retried
-  uint64_t totalFiles_ = 300;      
+  uint64_t totalFiles_ = 1000;      
   quic::StreamId streamId_;        
   bool isSending_ = false;         // Flag to indicate if a send is in progress
   std::shared_ptr<folly::IOBuf> cachedFileData; // Cached file data

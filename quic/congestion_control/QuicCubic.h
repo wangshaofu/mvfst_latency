@@ -107,10 +107,16 @@ class Cubic : public CongestionController {
         experimental;
   }
 
+  // UROP[ERIC]: override getBandwidth
+  FOLLY_NODISCARD virtual Optional<Bandwidth> getBandwidth() const override;
+
  protected:
   CubicStates state_{CubicStates::Hystart};
 
  private:
+  
+  
+
   bool isAppIdle() const noexcept;
   void onPacketAcked(const AckEvent& ack);
   void onPacketAckedInHystart(const AckEvent& ack);

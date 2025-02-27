@@ -741,6 +741,17 @@ void Cubic::getStats(CongestionControllerStats& stats) const {
   }
 }
 
+// UROP[ERIC]: Implement getBandwidth for Cubic 
+// This function estimates the bandwidth by bandwidth = cwnd*MSS / RTT
+FOLLY_NODISCARD Optional<Bandwidth> Cubic::getBandwidth() const {
+  auto srtt = conn_.lossState.srtt;
+  if (srtt == 0ms) {
+    return folly::none;
+  }
+
+  return Bandwidth(cwndBytes_, srtt, Bandwidth::UnitType::BYTES, false);
+}
+
 folly::StringPiece cubicStateToString(CubicStates state) {
   switch (state) {
     case CubicStates::Steady:
