@@ -244,7 +244,7 @@ class EchoClient : public quic::QuicSocket::ConnectionSetupCallback,
 
       TransportSettings settings;
       settings.pacingEnabled = true;
-      settings.defaultCongestionController = quic::CongestionControlType::BBR2; // UROP Michael: Changed from cubic to bbr to get bandwidth easier
+      settings.defaultCongestionController = quic::CongestionControlType::Cubic; // UROP Michael: Changed from cubic to bbr to get bandwidth easier
       settings.datagramConfig.enabled = useDatagrams_;
       settings.selfActiveConnectionIdLimit = activeConnIdLimit_;
       settings.disableMigration = !enableMigration_;
