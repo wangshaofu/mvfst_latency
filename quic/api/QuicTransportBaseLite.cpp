@@ -276,6 +276,30 @@ bool QuicTransportBaseLite::isBidirectionalStream(StreamId stream) noexcept {
   return quic::isBidirectionalStream(stream);
 }
 
+uint64_t QuicTransportBaseLite::getThresholdForLatencyControl(uint32_t latencyThreshold){
+  auto srtt = conn_->lossState.srtt;
+  uint64_t minBufferSize = 51220; // Todo: Initialize with a minimum buffer which is larger than the file 
+  // UROP Michael: Temp added to get the bandwidth
+  if (conn_->congestionController) { 
+    auto bandwidth = conn_->congestionController->getBandwidth();
+    if (bandwidth.has_value() &&
+        bandwidth->unitType == Bandwidth::UnitType::BYTES) {
+        bitsPerSecSample = bandwidth->normalize() * 8;
+        // Dynamically calculate buffer size
+        uint64_t dynamicBufferSize = (latencyThreshold > (double)srtt.count()/2000) ? 
+            (latencyThreshold - (double)srtt.count()/2000) * (bitsPerSecSample/8000) : 0;
+          // Ensure the buffer size is at least the minimum buffer size
+        if (dynamicBufferSize > minBufferSize) {
+            minBufferSize = dynamicBufferSize;
+        }
+    }
+  }
+  LOG(INFO) << "Current SRTT: " << srtt.count() << " us";
+  LOG(INFO) << "Current Bandwidth: " << bitsPerSecSample; // UROP Michael: Externed from QuicTransportBaseLite.h  
+  LOG(INFO) << "Max Buffer Size: " << minBufferSize;
+  return minBufferSize;
+}
+
 QuicSocketLite::WriteResult QuicTransportBaseLite::writeChain(
     StreamId id,
     Buf data,
@@ -320,9 +344,10 @@ QuicSocketLite::WriteResult QuicTransportBaseLite::writeChain(
         LOG(INFO)<<"Estimated Bandwidth: Not available";
       }
     }
-
-
-    auto [success, availableBytes] = writeDataToQuicStream(*stream, std::move(data), eof);
+    // LOG(INFO) << "Bandwidth: " << bitsPerSecSample << " bps";
+    auto thresholdBufferSize = getThresholdForLatencyControl(latencyThreshold); // UROP Michael: Added to get the bandwidth
+    quic::PacketNum expected_number = getNextPacketNum(*conn_, PacketNumberSpace::AppData);
+    auto [success, availableBytes] = writeDataToQuicStreamWithLatencyControl(*stream, std::move(data), eof, thresholdBufferSize);
     if (!success) {
       // Buffer is full, return existing error code with a detailed message
       // LOG(WARNING) << "Buffer full on stream " << id
@@ -330,6 +355,10 @@ QuicSocketLite::WriteResult QuicTransportBaseLite::writeChain(
       // todo: change borrow STREAM_LIMIT_EXCEEDED to use 
       return folly::makeUnexpected(LocalErrorCode::STREAM_LIMIT_EXCEEDED);
     }
+    auto sendTimeNs = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+    
+    LOG(INFO) << "[Queueing Delay]Added data to buffer at " << sendTimeNs
+        << ", data identifier: " << expected_number;
 
     // If we were previously app limited restart pacing with the current rate.
     if (wasAppLimitedOrIdle && conn_->pacer) {

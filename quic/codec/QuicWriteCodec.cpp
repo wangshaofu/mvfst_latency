@@ -172,6 +172,10 @@ void writeStreamFrameData(
     const ChainedByteRangeHead& writeBuffer,
     uint64_t dataLen) {
   if (dataLen > 0) {
+    // UROP[ERIC] Logging timestamp of when the data is written into builder
+    auto sendTimeNs = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+    LOG(INFO) << "[Queueing Delay]Written data to builder at " << sendTimeNs
+        << ", data identifier: " << builder.getPacketHeader().getPacketSequenceNum();
     builder.insert(writeBuffer, dataLen);
   }
 }

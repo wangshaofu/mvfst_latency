@@ -18,6 +18,11 @@ enum class CloseState { OPEN, GRACEFUL_CLOSING, CLOSED };
 class QuicTransportBaseLite : virtual public QuicSocketLite,
                               QuicAsyncUDPSocket::WriteCallback {
  public:
+
+  // UROP Michael: Add this for getting the bandwidth
+  uint64_t bitsPerSecSample;
+  uint32_t latencyThreshold;
+
   QuicTransportBaseLite(
       std::shared_ptr<QuicEventBase> evb,
       std::unique_ptr<QuicAsyncUDPSocket> socket,
@@ -63,7 +68,7 @@ class QuicTransportBaseLite : virtual public QuicSocketLite,
   uint64_t getNumOpenableUnidirectionalStreams() const override;
   bool isUnidirectionalStream(StreamId stream) noexcept override;
   bool isBidirectionalStream(StreamId stream) noexcept override;
-
+  uint64_t getThresholdForLatencyControl(uint32_t latencyThreshold);
   WriteResult writeChain(
       StreamId id,
       Buf data,
@@ -838,6 +843,7 @@ class QuicTransportBaseLite : virtual public QuicSocketLite,
   FunctionLooper::Ptr peekLooper_;
 
   Optional<std::string> exceptionCloseWhat_;
+
 
   std::
       unique_ptr<QuicConnectionStateBase, folly::DelayedDestruction::Destructor>

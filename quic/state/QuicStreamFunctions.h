@@ -12,15 +12,16 @@
 
 namespace quic {
 
+// UROP Michael: Add this for the latency control
+std::pair<bool, uint64_t> writeDataToQuicStreamWithLatencyControl(QuicStreamState& stream, Buf data, bool eof, uint64_t thresholdBufferSize);
+
 /**
  * Adds data to the end of the write buffer of the QUIC stream. This
  * data will be written onto the socket.
  *
  * @throws QuicTransportException on error.
  */
-extern uint64_t maxLatencyBufferSize; // UROP Michael: Very bad way of writing code, externed in QuicTransportBaseLite.cpp
-
-std::pair<bool, uint64_t> writeDataToQuicStream(QuicStreamState& stream, Buf data, bool eof);
+void writeDataToQuicStream(QuicStreamState& stream, Buf data, bool eof);
 
 /**
  * Adds data represented in the form of BufferMeta to the end of the Buffer
