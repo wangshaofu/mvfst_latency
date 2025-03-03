@@ -17,6 +17,7 @@
 #include <quic/state/QuicStreamFunctions.h>
 #include <quic/state/stream/StreamSendHandlers.h>
 #include <sstream>
+#include <fstream>
 
 namespace {
 constexpr auto APP_NO_ERROR = quic::GenericApplicationErrorCode::NO_ERROR;
@@ -294,9 +295,16 @@ uint64_t QuicTransportBaseLite::getThresholdForLatencyControl(uint32_t latencyTh
         }
     }
   }
-  LOG(INFO) << "Current SRTT: " << srtt.count() << " us";
-  LOG(INFO) << "Current Bandwidth: " << bitsPerSecSample; // UROP Michael: Externed from QuicTransportBaseLite.h  
-  LOG(INFO) << "Max Buffer Size: " << minBufferSize;
+  auto sendTimeNs = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+  {
+    // log srrt, bandwidth, and buffer size
+    std::ofstream outFile("../../../../research/log_network_condition.txt", std::ios::app);
+    outFile << "At time " << sendTimeNs << "ns: SRTT: " << srtt.count() << " us; Throughput: " << bitsPerSecSample << " bps; Buffer Size: " << minBufferSize << " bytes" << std::endl;
+  }
+
+  // LOG(INFO) << "Current SRTT: " << srtt.count() << " us";
+  // LOG(INFO) << "Current Bandwidth: " << bitsPerSecSample; // UROP Michael: Externed from QuicTransportBaseLite.h  
+  // LOG(INFO) << "Max Buffer Size: " << minBufferSize;
   return minBufferSize;
 }
 

@@ -111,7 +111,7 @@ for buffer_size in buffer_sizes:
 
         line = server.stdout.readline()
         if line:
-            if "Parsed FileID: 299" in line:
+            if "Parsed FileID: 999" in line:
                 log_found = True
                 break  # Latency test complete
 
