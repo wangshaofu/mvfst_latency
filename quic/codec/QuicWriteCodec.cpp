@@ -14,6 +14,8 @@
 #include <quic/codec/QuicInteger.h>
 #include <cstdint>
 #include <sstream>
+#include <regex>
+#include <fstream>
 
 namespace {
 
@@ -171,10 +173,31 @@ void writeStreamFrameData(
     PacketBuilderInterface& builder,
     const ChainedByteRangeHead& writeBuffer,
     uint64_t dataLen) {
+  static uint32_t id = 0;  // Static ID variable to maintain the ID count
+
   if (dataLen > 0) {
+    // Convert the writeBuffer to a string for inspection
+    std::string bufferContent = writeBuffer.toStr();
+    if (bufferContent.size() > dataLen) {
+      bufferContent.resize(dataLen);
+    }
+
+    // Check for the presence of capital 'F'
+    if (bufferContent.find('F') != std::string::npos) {
+      auto builderTimeNs = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+      {
+        std::ofstream outFile("../../../../research/log_builder_timestamp.txt", std::ios::app);
+        outFile << "FileID: " << id << " BuilderTime: " << builderTimeNs << " ns" << std::endl;
+      }
+      // Increment the ID, wrapping around to 0 after 999
+      id = (id + 1) % 1000;
+    }
+
+    // Insert the buffer into the builder
     builder.insert(writeBuffer, dataLen);
   }
 }
+
 
 Optional<WriteCryptoFrame> writeCryptoFrame(
     uint64_t offsetIn,

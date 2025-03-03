@@ -473,7 +473,7 @@ class EchoClient : public quic::QuicSocket::ConnectionSetupCallback,
     data.append(std::move(headerBuf));
     LOG(INFO) << "Trying to send file with ID=" << fileId;
     sendMessage(streamId_, data, fileId);
-}
+  }
 
 
 

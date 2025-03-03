@@ -117,6 +117,7 @@ class EchoServer {
     // Clear the file at server start
     clearFileAtServerStart("../../../../research/log_sent_timestamp.txt");
     clearFileAtServerStart("../../../../research/log_received_timestamp.txt");
+    clearFileAtServerStart("../../../../research/log_builder_timestamp.txt");
     clearFileAtServerStart("../../../../research/log_network_condition.txt");
 
     // Create a SocketAddress and the default or passed in host.

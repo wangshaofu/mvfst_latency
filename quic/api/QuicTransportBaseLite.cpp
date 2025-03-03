@@ -295,11 +295,11 @@ uint64_t QuicTransportBaseLite::getThresholdForLatencyControl(uint32_t latencyTh
         }
     }
   }
-  auto sendTimeNs = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+  auto networkTimeNs = std::chrono::high_resolution_clock::now().time_since_epoch().count();
   {
     // log srrt, bandwidth, and buffer size
     std::ofstream outFile("../../../../research/log_network_condition.txt", std::ios::app);
-    outFile << "At time " << sendTimeNs << "ns: SRTT: " << srtt.count() << " us; Throughput: " << bitsPerSecSample << " bps; Buffer Size: " << minBufferSize << " bytes" << std::endl;
+    outFile << "At time " << networkTimeNs << "ns: SRTT: " << srtt.count() << " us; Throughput: " << bitsPerSecSample << " bps; Buffer Size: " << minBufferSize << " bytes" << std::endl;
   }
 
   // LOG(INFO) << "Current SRTT: " << srtt.count() << " us";

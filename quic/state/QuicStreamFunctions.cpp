@@ -27,7 +27,7 @@ void prependToBuf(quic::Buf& buf, quic::Buf toAppend) {
 
 namespace quic {
 
-uint64_t maxLatencyBufferSize = 512000;
+// uint64_t maxLatencyBufferSize = 512000;
 
 std::pair<bool, uint64_t> writeDataToQuicStreamWithLatencyControl(QuicStreamState& stream, Buf data, bool eof, uint64_t thresholdBufferSize) {
   uint64_t len = data ? data->computeChainDataLength() : 0;
