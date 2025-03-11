@@ -195,7 +195,7 @@ void writeStreamFrameData(
         outFile << "FileID: " << id << " BuilderTime: " << builderTimeNs << " ns" << std::endl;
       }
       // Increment the ID, wrapping around to 0 after 999
-      id = (id + 1) % 1000;
+      id++;
     }
     // Log moving speed
     totalDataSize += dataLen;

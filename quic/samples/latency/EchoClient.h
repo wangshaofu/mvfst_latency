@@ -344,7 +344,7 @@ class EchoClient : public quic::QuicSocket::ConnectionSetupCallback,
 
   void setMaximumThreshhold() {
     // UROP Michael: Set the maximum threshold for latency control
-    quicClient_->latencyThreshold = 150; // this means setting the maximum allowed latency to 150ms
+    quicClient_->latencyThreshold = latencyBufferSize_; // this means setting the maximum allowed latency to 150ms
   }
 
   void sendMessage(quic::StreamId id, BufQueue& data, uint64_t fileId) {

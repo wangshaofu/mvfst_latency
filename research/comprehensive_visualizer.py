@@ -112,54 +112,56 @@ def plot_all_data(file_ids, latencies_ms, builder_diffs_ms, throughput_timestamp
     # Plot latency
     plt.subplot(3, 2, 1)
     plt.plot(file_ids, latencies_ms, marker='o', linestyle='-')
-    plt.xlabel('FileID')
-    plt.ylabel('Latency (ms)')
-    plt.title('Latency per FileID (Send to Receive)')
+    plt.xlabel('FileID', labelpad=0)  # Set labelpad to 0
+    plt.ylabel('Latency (ms)', labelpad=0)
+    plt.title('Latency per FileID (Whole Path)', pad=0)  # Adjust title padding if needed
     plt.grid(True)
     
     # Plot builder time differences
     plt.subplot(3, 2, 2)
     plt.plot(file_ids, builder_diffs_ms, marker='s', linestyle='-', color='g')
-    plt.xlabel('FileID')
-    plt.ylabel('Time Difference (ms)')
-    plt.title('Time Difference per FileID (Send to Builder)')
+    plt.xlabel('FileID', labelpad=0)
+    plt.ylabel('Time Difference (ms)', labelpad=0)
+    plt.title('Time Difference per FileID (writeChain to toSocket)', pad=0)
     plt.grid(True)
     
     # Plot throughput
     plt.subplot(3, 2, 3)
     plt.plot(throughput_timestamps, throughputs, marker='o')
-    plt.title('Throughput Over Time')
-    plt.xlabel('Timestamp (ns)')
-    plt.ylabel('Throughput (Mbps)')
+    plt.xlabel('Timestamp (ns)', labelpad=0)
+    plt.ylabel('Throughput (Mbps)', labelpad=0)
+    plt.title('Congestion Control Sending Rate (BBR2 getBandwidth) Over Time', pad=0)
     plt.grid(True)
     
     # Plot SRTT
     plt.subplot(3, 2, 4)
     plt.plot(throughput_timestamps, srtts, marker='x', color='r')
-    plt.title('SRTT Over Time')
-    plt.xlabel('Timestamp (ns)')
-    plt.ylabel('SRTT (ms)')
+    plt.xlabel('Timestamp (ns)', labelpad=0)
+    plt.ylabel('SRTT (ms)', labelpad=0)
+    plt.title('SRTT Over Time', pad=0)
     plt.grid(True)
     
     # Plot Buffer Size
     plt.subplot(3, 2, 5)
     plt.plot(throughput_timestamps, buffer_sizes, marker='^', linestyle='-', color='m')
-    plt.title('Buffer Size Over Time')
-    plt.xlabel('Timestamp (ns)')
-    plt.ylabel('Buffer Size (KB)')
+    plt.xlabel('Timestamp (ns)', labelpad=0)
+    plt.ylabel('Buffer Size THRESHOLD (KB)', labelpad=0)
+    plt.title('writeBuffer Size THRESHOLD Over Time', pad=0)
     plt.grid(True)
     
     # Plot Moving Speed
     plt.subplot(3, 2, 6)
     timestamps_sec = [t / 1e9 for t in moving_speed_timestamps]  # Convert to seconds
     plt.plot(timestamps_sec, moving_speeds, marker='o', linestyle='-', color='c')
-    plt.xlabel('Timestamp (s)')
-    plt.ylabel('Throughput (Mbps)')
-    plt.title('Moving Speed Over Time')
+    plt.xlabel('Timestamp (s)', labelpad=0)
+    plt.ylabel('Throughput (Mbps)', labelpad=0)
+    plt.title('writeBuffer to Packet (almost equivalent to socket) Speed Over Time', pad=0)
     plt.grid(True)
 
     plt.tight_layout()
     plt.show()
+
+
 
 if __name__ == "__main__":
     # Latency calculations

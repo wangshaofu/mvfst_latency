@@ -295,8 +295,8 @@ uint64_t QuicTransportBaseLite::getThresholdForLatencyControl(uint32_t latencyTh
     //         minBufferSize = dynamicBufferSize;
     //     }
     // }
+    auto bandwidth = conn_->congestionController->getBandwidth();
     if (movingSpeedBps > 0) {
-      auto bandwidth = conn_->congestionController->getBandwidth();
       bitsPerSecSample = bandwidth->normalize() * 8;
       // Dynamically calculate buffer size
       uint64_t dynamicBufferSize = (latencyThreshold > (double)srtt.count()/2000) ? 
