@@ -88,9 +88,26 @@ def calculate_throughput_srtt_buffer(filename):
     median_throughput = statistics.median(throughputs)
     
     return average_throughput, median_throughput, timestamps, throughputs, srtts, buffer_sizes
+def read_moving_speed_log(file_name):
+    timestamps = []
+    throughputs = []
 
-def plot_all_data(file_ids, latencies_ms, builder_diffs_ms, throughput_timestamps, throughputs, srtts, buffer_sizes):
-    plt.figure(figsize=(18, 12))
+    with open(file_name, 'r') as file:
+        for line in file:
+            # Use regex to extract timestamp and throughput
+            match = re.match(r'At time (\d+)ns: Throughput: ([\d.]+|N/A) Mbps;', line)
+            if match:
+                timestamp = int(match.group(1))
+                throughput = match.group(2)
+                timestamps.append(timestamp)
+                if throughput == "N/A":
+                    throughputs.append(None)  # Handle N/A values
+                else:
+                    throughputs.append(float(throughput))
+    return timestamps, throughputs
+
+def plot_all_data(file_ids, latencies_ms, builder_diffs_ms, throughput_timestamps, throughputs, srtts, buffer_sizes, moving_speed_timestamps, moving_speeds):
+    plt.figure(figsize=(18, 14))
     
     # Plot latency
     plt.subplot(3, 2, 1)
@@ -132,6 +149,15 @@ def plot_all_data(file_ids, latencies_ms, builder_diffs_ms, throughput_timestamp
     plt.ylabel('Buffer Size (KB)')
     plt.grid(True)
     
+    # Plot Moving Speed
+    plt.subplot(3, 2, 6)
+    timestamps_sec = [t / 1e9 for t in moving_speed_timestamps]  # Convert to seconds
+    plt.plot(timestamps_sec, moving_speeds, marker='o', linestyle='-', color='c')
+    plt.xlabel('Timestamp (s)')
+    plt.ylabel('Throughput (Mbps)')
+    plt.title('Moving Speed Over Time')
+    plt.grid(True)
+
     plt.tight_layout()
     plt.show()
 
@@ -162,11 +188,15 @@ if __name__ == "__main__":
     network_log_file = 'log_network_condition.txt'  # Ensure this file is in the same directory
     average_throughput, median_throughput, throughput_timestamps, throughputs, srtts, buffer_sizes = calculate_throughput_srtt_buffer(network_log_file)
     
+    # Moving speed calculations
+    moving_speed_file = 'log_moving_speed.txt'
+    moving_speed_timestamps, moving_speeds = read_moving_speed_log(moving_speed_file)
+    
     if average_throughput is not None:
         print(f"\nAverage throughput: {average_throughput:.2f} Mbps")
         print(f"Median throughput: {median_throughput:.2f} Mbps")
     
         # Plot all data
-        plot_all_data(file_ids, latencies_ms, builder_diffs_ms, throughput_timestamps, throughputs, srtts, buffer_sizes)
+        plot_all_data(file_ids, latencies_ms, builder_diffs_ms, throughput_timestamps, throughputs, srtts, buffer_sizes, moving_speed_timestamps, moving_speeds)
     else:
         print("No throughput, SRTT, or Buffer Size data found in the file.")

@@ -65,6 +65,7 @@ void writeStreamFrameData(
     const ChainedByteRangeHead& writeBuffer,
     uint64_t dataLen);
 
+void logMovingSpeed(uint64_t dataLen, uint64_t builderTimeNs);
 /**
  * Write a CryptoFrame into builder. The builder may not be able to accept all
  * the bytes that are supplied to writeCryptoFrame.

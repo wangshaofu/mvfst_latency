@@ -170,10 +170,10 @@ Optional<uint64_t> writeStreamFrameHeader(
 }
 
 void writeStreamFrameData(
-    PacketBuilderInterface& builder,
-    const ChainedByteRangeHead& writeBuffer,
-    uint64_t dataLen) {
-  static uint32_t id = 0;  // Static ID variable to maintain the ID count
+  PacketBuilderInterface& builder,
+  const ChainedByteRangeHead& writeBuffer,
+  uint64_t dataLen) {
+static uint32_t id = 0;  // Static ID variable to maintain the ID count
 
   if (dataLen > 0) {
     // Convert the writeBuffer to a string for inspection
@@ -184,20 +184,51 @@ void writeStreamFrameData(
 
     // Check for the presence of capital 'F'
     if (bufferContent.find('F') != std::string::npos) {
+      // Get current time for logging
       auto builderTimeNs = std::chrono::high_resolution_clock::now().time_since_epoch().count();
       {
+        // Log builder timestamp
         std::ofstream outFile("../../../../research/log_builder_timestamp.txt", std::ios::app);
         outFile << "FileID: " << id << " BuilderTime: " << builderTimeNs << " ns" << std::endl;
       }
+      // Log moving speed
+      logMovingSpeed(dataLen, builderTimeNs);
       // Increment the ID, wrapping around to 0 after 999
       id = (id + 1) % 1000;
     }
-
     // Insert the buffer into the builder
     builder.insert(writeBuffer, dataLen);
   }
 }
 
+
+void logMovingSpeed(uint64_t dataLen, uint64_t builderTimeNs) {
+  static uint64_t lastBuilderTimeNs = 0;  // Keeps track of the last builder timestamp
+  static std::ofstream outFile("../../../../research/log_moving_speed.txt", std::ios::app);
+
+  if (lastBuilderTimeNs != 0) {
+    // Calculate time difference in seconds
+    double timeDifferenceSec = (builderTimeNs - lastBuilderTimeNs) / 1e9;
+
+    if (timeDifferenceSec > 0) {
+      // Calculate moving speed in Mbps
+      double movingSpeedMbps = (dataLen * 8 / 1e6) / timeDifferenceSec;
+
+      // Log moving speed in the desired format
+      outFile << "At time " << builderTimeNs << "ns: "
+              << "Throughput: " << movingSpeedMbps << " Mbps; "
+              << "Data Length: " << dataLen << " bytes" << std::endl;
+    }
+  } else {
+    // Log the first entry without speed
+    outFile << "At time " << builderTimeNs << "ns: "
+            << "Throughput: N/A Mbps (First Entry); "
+            << "Data Length: " << dataLen << " bytes" << std::endl;
+  }
+
+  // Update the last builder timestamp
+  lastBuilderTimeNs = builderTimeNs;
+}
 
 Optional<WriteCryptoFrame> writeCryptoFrame(
     uint64_t offsetIn,

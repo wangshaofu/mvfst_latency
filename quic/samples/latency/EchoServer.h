@@ -119,6 +119,7 @@ class EchoServer {
     clearFileAtServerStart("../../../../research/log_received_timestamp.txt");
     clearFileAtServerStart("../../../../research/log_builder_timestamp.txt");
     clearFileAtServerStart("../../../../research/log_network_condition.txt");
+    clearFileAtServerStart("../../../../research/log_moving_speed.txt");
 
     // Create a SocketAddress and the default or passed in host.
     folly::SocketAddress addr1(host_.c_str(), port_);
