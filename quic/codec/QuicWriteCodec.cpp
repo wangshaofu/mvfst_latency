@@ -173,7 +173,8 @@ void writeStreamFrameData(
   PacketBuilderInterface& builder,
   const ChainedByteRangeHead& writeBuffer,
   uint64_t dataLen) {
-static uint32_t id = 0;  // Static ID variable to maintain the ID count
+  static uint32_t id = 0;  // Static ID variable to maintain the ID count
+  static uint64_t totalDataSize = 0; // Tracks total data with 'F'
 
   if (dataLen > 0) {
     // Convert the writeBuffer to a string for inspection
@@ -188,20 +189,23 @@ static uint32_t id = 0;  // Static ID variable to maintain the ID count
       auto builderTimeNs = std::chrono::high_resolution_clock::now().time_since_epoch().count();
       {
         // Log builder timestamp
+        logMovingSpeed(totalDataSize, builderTimeNs);
+        totalDataSize = 0;
         std::ofstream outFile("../../../../research/log_builder_timestamp.txt", std::ios::app);
         outFile << "FileID: " << id << " BuilderTime: " << builderTimeNs << " ns" << std::endl;
       }
-      // Log moving speed
-      logMovingSpeed(dataLen, builderTimeNs);
       // Increment the ID, wrapping around to 0 after 999
       id = (id + 1) % 1000;
     }
+    // Log moving speed
+    totalDataSize += dataLen;
+    // LOG(INFO) << dataLen << " bytes written to the stream frame";
     // Insert the buffer into the builder
     builder.insert(writeBuffer, dataLen);
   }
 }
 
-
+double movingSpeedBps;
 void logMovingSpeed(uint64_t dataLen, uint64_t builderTimeNs) {
   static uint64_t lastBuilderTimeNs = 0;  // Keeps track of the last builder timestamp
   static std::ofstream outFile("../../../../research/log_moving_speed.txt", std::ios::app);
@@ -212,11 +216,11 @@ void logMovingSpeed(uint64_t dataLen, uint64_t builderTimeNs) {
 
     if (timeDifferenceSec > 0) {
       // Calculate moving speed in Mbps
-      double movingSpeedMbps = (dataLen * 8 / 1e6) / timeDifferenceSec;
+      movingSpeedBps = (dataLen * 8) / timeDifferenceSec;
 
       // Log moving speed in the desired format
       outFile << "At time " << builderTimeNs << "ns: "
-              << "Throughput: " << movingSpeedMbps << " Mbps; "
+              << "Throughput: " << movingSpeedBps / 1e6 << " Mbps; "
               << "Data Length: " << dataLen << " bytes" << std::endl;
     }
   } else {
