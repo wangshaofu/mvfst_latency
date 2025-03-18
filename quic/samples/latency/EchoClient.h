@@ -246,8 +246,8 @@ class EchoClient : public quic::QuicSocket::ConnectionSetupCallback,
       }
 
       TransportSettings settings;
-      // settings.pacingEnabled = true;
-      settings.defaultCongestionController = quic::CongestionControlType::Cubic; // UROP Michael: Changed from cubic to bbr to get bandwidth easier
+      settings.pacingEnabled = true;
+      settings.defaultCongestionController = quic::CongestionControlType::BBR2; // UROP Michael: Changed from cubic to bbr to get bandwidth easier
       settings.datagramConfig.enabled = useDatagrams_;
       settings.selfActiveConnectionIdLimit = activeConnIdLimit_;
       settings.disableMigration = !enableMigration_;
@@ -274,7 +274,7 @@ class EchoClient : public quic::QuicSocket::ConnectionSetupCallback,
     setMaximumThreshhold();
     // Send the file
     scheduleSends(evb);
-    scheduleMonitoring(evb);
+    // scheduleMonitoring(evb);
     
     // std::string message;
     // bool closed = false;
@@ -329,25 +329,25 @@ class EchoClient : public quic::QuicSocket::ConnectionSetupCallback,
   }
 
 
-  void scheduleMonitoring(folly::EventBase* evb) {
-    evb->runInEventBaseThread([this, evb]() {
-        // Print RTT and bandwidth
-        printTransportStats();
+  // void scheduleMonitoring(folly::EventBase* evb) {
+  //   evb->runInEventBaseThread([this, evb]() {
+  //       // Print RTT and bandwidth
+  //       printTransportStats();
 
-        // Schedule the next monitoring event after 1000 milliseconds (1 second)
-        evb->runAfterDelay([this, evb]() {
-            scheduleMonitoring(evb);
-        }, 10);
-    });
-  }
+  //       // Schedule the next monitoring event after 1000 milliseconds (1 second)
+  //       evb->runAfterDelay([this, evb]() {
+  //           scheduleMonitoring(evb);
+  //       }, 10);
+  //   });
+  // }
 
-  void printTransportStats() {
+  // void printTransportStats() {
     // quicClient_->getThresholdForLatencyControl(0);
-  }
+  // }
 
   void setMaximumThreshhold() {
     // UROP Michael: Set the maximum threshold for latency control
-    quicClient_->latencyThreshold = latencyBufferSize_; // this means setting the maximum allowed latency to 150ms
+    quicClient_->latencyThreshold = latencyThreshold_; // this means setting the maximum allowed latency to 150ms
   }
 
   void sendMessage(quic::StreamId id, BufQueue& data, uint64_t fileId) {

@@ -295,13 +295,13 @@ uint64_t QuicTransportBaseLite::getThresholdForLatencyControl(uint32_t latencyTh
     //         minBufferSize = dynamicBufferSize;
     //     }
     // }
-    // auto bandwidth = conn_->congestionController->getBandwidth();
+    auto bandwidth = conn_->congestionController->getBandwidth();
     if (movingSpeedBps > 0) {
-      // bitsPerSecSample = bandwidth->normalize() * 8;
+      bitsPerSecSample = bandwidth->normalize() * 8;
       // Dynamically calculate buffer size
       uint64_t dynamicBufferSize = (latencyThreshold > (double)srtt.count()/1000) ? 
         (latencyThreshold - (double)srtt.count()/1000) * (movingSpeedBps/8000) : 0;
-        // LOG(INFO) << "Dynamic Buffer Size: " << dynamicBufferSize;
+        LOG(INFO) << "Dynamic Buffer Size: " << dynamicBufferSize;
         // Ensure the buffer size is at least the minimum buffer size
         if (dynamicBufferSize > minBufferSize) {
           minBufferSize = dynamicBufferSize;
@@ -312,9 +312,8 @@ uint64_t QuicTransportBaseLite::getThresholdForLatencyControl(uint32_t latencyTh
   {
     // log srrt, bandwidth, and buffer size
     std::ofstream outFile("../../../../research/log_network_condition.txt", std::ios::app);
-    outFile << "At time " << networkTimeNs << "ns: SRTT: " << srtt.count() << " us; Buffer Size: " << minBufferSize << " bytes" << std::endl;
+    outFile << "At time " << networkTimeNs << "ns: SRTT: " << srtt.count() << " us; Throughput: " << bitsPerSecSample << " bps; Buffer Size: " << minBufferSize << " bytes" << std::endl;
   }
-
   // LOG(INFO) << "Current SRTT: " << srtt.count() << " us";
   // LOG(INFO) << "Current Bandwidth: " << bitsPerSecSample; // UROP Michael: Externed from QuicTransportBaseLite.h  
   // LOG(INFO) << "Max Buffer Size: " << minBufferSize;

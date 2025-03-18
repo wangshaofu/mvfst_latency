@@ -81,7 +81,7 @@ Optional<uint64_t> writeStreamFrameHeader(
   // the header so far we can omit the length field and consume the rest of the
   // packet. If it is not then we need to use the minimal varint encoding
   // possible to avoid sending not-full packets.
-  // Note: we don't bother with one potential optimization, which is writing
+  // bother with one potential optimization, which is writing
   // a zero length fin-only stream frame and omitting the length field.
   uint64_t dataLen = std::min(writeBufferLen, flowControlLen);
   uint64_t dataLenLen = 0;

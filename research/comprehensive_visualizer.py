@@ -68,17 +68,19 @@ def calculate_throughput_srtt_buffer(filename):
             throughput_match = re.search(r'Throughput: (\d+)', line)
             srtt_match = re.search(r'SRTT: (\d+)', line)
             buffer_size_match = re.search(r'Buffer Size: (\d+)', line)
-            
-            if timestamp_match and throughput_match and srtt_match and buffer_size_match:
-                timestamp = int(timestamp_match.group(1))
-                throughput = int(throughput_match.group(1)) / 1_000_000  # Convert bps to Mbps
-                srtt = int(srtt_match.group(1)) / 1000  # Convert us to ms
-                buffer_size = int(buffer_size_match.group(1)) / 1024  # Convert bytes to KB
-                
-                timestamps.append(timestamp)
-                throughputs.append(throughput)
-                srtts.append(srtt)
-                buffer_sizes.append(buffer_size)
+
+            # Use 0 if any match is None
+            timestamp = int(timestamp_match.group(1)) if timestamp_match else 0
+            throughput = int(throughput_match.group(1)) / 1_000_000 if throughput_match else 0  # Convert bps to Mbps
+            srtt = int(srtt_match.group(1)) / 1000 if srtt_match else 0  # Convert us to ms
+            buffer_size = int(buffer_size_match.group(1)) / 1024 if buffer_size_match else 0  # Convert bytes to KB
+
+            # Append values to lists
+            timestamps.append(timestamp)
+            throughputs.append(throughput)
+            srtts.append(srtt)
+            buffer_sizes.append(buffer_size)
+
     
     if not timestamps or not throughputs or not srtts or not buffer_sizes:
         return None, None, [], [], [], []  # Return None if no data found
@@ -202,3 +204,5 @@ if __name__ == "__main__":
         plot_all_data(file_ids, latencies_ms, builder_diffs_ms, throughput_timestamps, throughputs, srtts, buffer_sizes, moving_speed_timestamps, moving_speeds)
     else:
         print("No throughput, SRTT, or Buffer Size data found in the file.")
+        plot_all_data(file_ids, latencies_ms, builder_diffs_ms, throughput_timestamps, throughputs, srtts, buffer_sizes, moving_speed_timestamps, moving_speeds)
+
