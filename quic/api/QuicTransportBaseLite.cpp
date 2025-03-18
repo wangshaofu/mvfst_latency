@@ -280,7 +280,7 @@ bool QuicTransportBaseLite::isBidirectionalStream(StreamId stream) noexcept {
 extern double movingSpeedBps;
 uint64_t QuicTransportBaseLite::getThresholdForLatencyControl(uint32_t latencyThreshold){
   auto srtt = conn_->lossState.srtt;
-  uint64_t minBufferSize = 2500000; // Todo: Initialize with a minimum buffer which is larger than the file 
+  uint64_t minBufferSize = 52200; // Todo: Initialize with a minimum buffer which is larger than the file 
   // UROP Michael: Temp added to get the bandwidth
   if (conn_->congestionController) { 
     // auto bandwidth = conn_->congestionController->getBandwidth();
