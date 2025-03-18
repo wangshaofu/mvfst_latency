@@ -14,7 +14,7 @@
 #include <quic/samples/latency/EchoClient.h>
 #include <quic/samples/latency/EchoServer.h>
 
-DEFINE_string(host, "127.1.1.1", "Echo server hostname/IP");
+DEFINE_string(host, "0.0.0.0", "Echo server hostname/IP");
 DEFINE_int32(port, 6666, "Echo server port");
 DEFINE_string(
     mode,
@@ -46,6 +46,10 @@ DEFINE_int64(
   latency_buffer_size,
   512000,
   "Maximum size of latency buffer in bytes");
+DEFINE_int64(
+  latency_threshold,
+  150,
+  "Maximum allowed of latency in ms");
 
 using namespace quic::samples;
 
@@ -93,7 +97,9 @@ int main(int argc, char* argv[]) {
         FLAGS_connect_only,
         FLAGS_client_cert_path,
         FLAGS_client_key_path,
-        FLAGS_latency_buffer_size);
+        FLAGS_latency_buffer_size,
+        FLAGS_latency_threshold
+      );
     client.start(FLAGS_token);
   } else {
     LOG(ERROR) << "Unknown mode specified: " << FLAGS_mode;

@@ -280,7 +280,7 @@ bool QuicTransportBaseLite::isBidirectionalStream(StreamId stream) noexcept {
 extern double movingSpeedBps;
 uint64_t QuicTransportBaseLite::getThresholdForLatencyControl(uint32_t latencyThreshold){
   auto srtt = conn_->lossState.srtt;
-  uint64_t minBufferSize = 51220; // Todo: Initialize with a minimum buffer which is larger than the file 
+  uint64_t minBufferSize = 2500000; // Todo: Initialize with a minimum buffer which is larger than the file 
   // UROP Michael: Temp added to get the bandwidth
   if (conn_->congestionController) { 
     // auto bandwidth = conn_->congestionController->getBandwidth();
@@ -295,12 +295,13 @@ uint64_t QuicTransportBaseLite::getThresholdForLatencyControl(uint32_t latencyTh
     //         minBufferSize = dynamicBufferSize;
     //     }
     // }
-    auto bandwidth = conn_->congestionController->getBandwidth();
+    // auto bandwidth = conn_->congestionController->getBandwidth();
     if (movingSpeedBps > 0) {
-      bitsPerSecSample = bandwidth->normalize() * 8;
+      // bitsPerSecSample = bandwidth->normalize() * 8;
       // Dynamically calculate buffer size
-      uint64_t dynamicBufferSize = (latencyThreshold > (double)srtt.count()/2000) ? 
-        (latencyThreshold - (double)srtt.count()/2000) * (movingSpeedBps/8000) : 0;
+      uint64_t dynamicBufferSize = (latencyThreshold > (double)srtt.count()/1000) ? 
+        (latencyThreshold - (double)srtt.count()/1000) * (movingSpeedBps/8000) : 0;
+        // LOG(INFO) << "Dynamic Buffer Size: " << dynamicBufferSize;
         // Ensure the buffer size is at least the minimum buffer size
         if (dynamicBufferSize > minBufferSize) {
           minBufferSize = dynamicBufferSize;
@@ -311,7 +312,7 @@ uint64_t QuicTransportBaseLite::getThresholdForLatencyControl(uint32_t latencyTh
   {
     // log srrt, bandwidth, and buffer size
     std::ofstream outFile("../../../../research/log_network_condition.txt", std::ios::app);
-    outFile << "At time " << networkTimeNs << "ns: SRTT: " << srtt.count() << " us; Throughput: " << bitsPerSecSample << " bps; Buffer Size: " << minBufferSize << " bytes" << std::endl;
+    outFile << "At time " << networkTimeNs << "ns: SRTT: " << srtt.count() << " us; Buffer Size: " << minBufferSize << " bytes" << std::endl;
   }
 
   // LOG(INFO) << "Current SRTT: " << srtt.count() << " us";
@@ -325,6 +326,7 @@ QuicSocketLite::WriteResult QuicTransportBaseLite::writeChain(
     Buf data,
     bool eof,
     ByteEventCallback* cb) {
+      
   if (isReceivingStream(conn_->nodeType, id)) {
     return folly::makeUnexpected(LocalErrorCode::INVALID_OPERATION);
   }
@@ -357,7 +359,10 @@ QuicSocketLite::WriteResult QuicTransportBaseLite::writeChain(
     if (conn_->congestionController) {
       wasAppLimitedOrIdle = conn_->congestionController->isAppLimited();
       wasAppLimitedOrIdle |= conn_->streamManager->isAppIdle();
+
+      // Log the current congestion window size
     }
+
     // LOG(INFO) << "Bandwidth: " << bitsPerSecSample << " bps";
     auto thresholdBufferSize = getThresholdForLatencyControl(latencyThreshold); // UROP Michael: Added to get the bandwidth
     auto [success, availableBytes] = writeDataToQuicStreamWithLatencyControl(*stream, std::move(data), eof, thresholdBufferSize);
@@ -366,9 +371,12 @@ QuicSocketLite::WriteResult QuicTransportBaseLite::writeChain(
       // LOG(WARNING) << "Buffer full on stream " << id
       //              << ". Available bytes: " << availableBytes;
       // todo: change borrow STREAM_LIMIT_EXCEEDED to use 
+      
       return folly::makeUnexpected(LocalErrorCode::STREAM_LIMIT_EXCEEDED);
     }
-
+    auto cwndBytes = conn_->congestionController->getCongestionWindow();
+    LOG(INFO) << "Buffer have space. Current congestion window size: " << cwndBytes << " bytes";
+  
     // If we were previously app limited restart pacing with the current rate.
     if (wasAppLimitedOrIdle && conn_->pacer) {
       conn_->pacer->reset();
@@ -434,6 +442,7 @@ QuicTransportBaseLite::notifyPendingWriteOnConnection(
       return;
     }
     auto connWritableBytes = self->maxWritableOnConn();
+    LOG(INFO) << "Connection is write ready with maxToSend=" << connWritableBytes;
     if (connWritableBytes != 0) {
       auto connWriteCallback = self->connWriteCallback_;
       self->connWriteCallback_ = nullptr;
@@ -1921,7 +1930,9 @@ void QuicTransportBaseLite::handleDeliveryCallbacks() {
       size_t amountTrimmed = stream->writeBuffer.trimStartAtMost(
           *maxOffsetToDeliver - stream->writeBufferStartOffset);
       stream->writeBufferStartOffset += amountTrimmed;
-      // LOG(INFO) << "In handleDeliveryCallbacks, the writeBuffer should be cut for size: " << amountTrimmed;
+      auto ackTimeNs = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+
+      LOG(INFO) << "In handleDeliveryCallbacks at time: " << ackTimeNs << " ns; ACKed the writeBuffer should be cut for size: " << amountTrimmed;
     }
 
     if (maxOffsetToDeliver.has_value()) {

@@ -246,8 +246,8 @@ class EchoClient : public quic::QuicSocket::ConnectionSetupCallback,
       }
 
       TransportSettings settings;
-      // settings.pacingEnabled = true;
-      settings.defaultCongestionController = quic::CongestionControlType::Cubic; // UROP Michael: Changed from cubic to bbr to get bandwidth easier
+      settings.pacingEnabled = true;
+      settings.defaultCongestionController = quic::CongestionControlType::BBR2; // UROP Michael: Changed from cubic to bbr to get bandwidth easier
       settings.datagramConfig.enabled = useDatagrams_;
       settings.selfActiveConnectionIdLimit = activeConnIdLimit_;
       settings.disableMigration = !enableMigration_;
@@ -356,64 +356,33 @@ class EchoClient : public quic::QuicSocket::ConnectionSetupCallback,
     // LOG(INFO) << "Sending file with ID=" << fileId;
     auto message = data.move();
     auto res = quicClient_->writeChain(id, message->clone(), false);
-    if (res.hasError()) {
-        auto error = res.error();
-        if (error == quic::LocalErrorCode::STREAM_LIMIT_EXCEEDED) {
-            // LOG(WARNING) << "Buffer full for file ID=" << fileId << ". Scheduling retry.";
-            scheduleRetry(id, std::move(message), fileId);
-        } else {
-            LOG(ERROR) << "writeChain error for file ID=" << fileId << ": " << quic::toString(error);
-            isSending_ = false;
-            // Handle other errors if necessary
-        }
-    } else {
         auto sendTimeNs = std::chrono::high_resolution_clock::now().time_since_epoch().count();
         {
             std::ofstream outFile("../../../../research/log_sent_timestamp.txt", std::ios::app);
             outFile << "FileID: " << fileId << " SendTime: " << sendTimeNs << " ns" << std::endl;
         }
         LOG(INFO) << "Sent file with ID=" << fileId;
-        processRetryFile(); // Proceed the pending writes
-    }
   }
 
 
 
-  void scheduleRetry(quic::StreamId id, std::unique_ptr<folly::IOBuf> message, uint64_t fileId) {
-    evb_->runAfterDelay(
-        [this, id, message = std::move(message), fileId]() mutable {
-            // LOG(INFO) << "Retrying file with ID=" << fileId;
-            BufQueue data;
-            data.append(std::move(message));
-            sendMessage(id, data, fileId);
-        },
-    0); // Setting a small delay of 3ms
+
+
+
+void scheduleSends(folly::EventBase* evb) {
+  evb_ = evb;
+  loadFileIntoMemory(); // Load the file once
+  streamId_ = quicClient_->createBidirectionalStream().value();
+  quicClient_->setReadCallback(streamId_, this);
+  // Start sending files every 10ms
+  periodicSend();
 }
 
-
-
-
-  void scheduleSends(folly::EventBase* evb) {
-    evb_ = evb;
-    loadFileIntoMemory(); // Load the file once
-    for (uint64_t i = 0; i < totalFiles_; ++i) {
-        fileQueue_.push(i);
-    }
-    streamId_= stream0Open_ ? 0 : quicClient_->createBidirectionalStream().value();
-    stream0Open_ = true;
-    quicClient_->setReadCallback(streamId_, this);
-    // Start sending files every 10ms
-    periodicSend(0);
-  }
-
-  void periodicSend(uint64_t count) {
-    if (count >= totalFiles_) {
-        LOG(INFO) << "All files have been sent.";
-        return;
-    }
-    processNextFile();
-    evb_->runAfterDelay([this, count] { periodicSend(count + 1); }, 10);
+void periodicSend() {
+  sendFile(0); // Send the file
+  evb_->runAfterDelay([this] { periodicSend(); }, 10);
 }
+
 
 
   void processNextFile() {
@@ -434,16 +403,6 @@ class EchoClient : public quic::QuicSocket::ConnectionSetupCallback,
     }
   }
 
-  void processRetryFile() {
-    if (retryQueue_.empty()) {
-      isSending_ = false;
-      return;
-    }
-    uint64_t fileId = retryQueue_.front();
-    retryQueue_.pop();
-    LOG(INFO) << "Sending the Retrying Queue file with ID=" << fileId;
-    sendFile(fileId);
-  }
 
 
   void loadFileIntoMemory() {
